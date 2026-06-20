@@ -79,17 +79,28 @@ document.addEventListener('DOMContentLoaded', () => {
     map.addControl(geolocate, 'top-right');
 
     // --- 🛠️ FIX 1: Overriding the Zoom-Out Bug ---
+    let initialLocationFound = false;
+
     geolocate.on('geolocate', (e) => {
-        const lon = e.coords.longitude;
-        const lat = e.coords.latitude;
-        
-        // Instead of MapLibre zooming out to fit a low-accuracy signal,
-        // we force it to fly straight down to the 3D street level.
-        map.flyTo({
-            center: [lon, lat],
-            zoom: 15.5, // Perfect zoom level to trigger 3D buildings
-            essential: true // This tells the browser to override any other animations
-        });
+        // Only force the camera jump on the VERY FIRST location ping
+        if (!initialLocationFound) {
+            const lon = e.coords.longitude;
+            const lat = e.coords.latitude;
+            
+            map.flyTo({
+                center: [lon, lat],
+                zoom: 15.5, 
+                essential: true 
+            });
+            
+            initialLocationFound = true; // Set flag to true so this code doesn't run again
+        }
+    });
+
+    // If the user manually turns off location tracking, reset the flag
+    // so the zoom-in effect works the next time they click the button!
+    geolocate.on('trackuserlocationend', () => {
+        initialLocationFound = false;
     });
 
     // --- 🛠️ FIX 2: Tamed Dynamic Marker Scaling ---
