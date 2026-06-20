@@ -1,0 +1,196 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: 'Bangers', cursive; 
+    background-color: #FCEABB; /* Matches map background before loading */
+}
+
+#map {
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Creates a vintage dark border around the edges of the screen */
+body::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Crucial: lets you still drag the map underneath */
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+}
+
+
+/* =========================================
+   COMIC BOOK LIVE LOCATION MARKER (ZOOM AWARE)
+   ========================================= */
+
+/* Initialize the variable */
+:root {
+    --marker-scale: 1;
+}
+
+/* 1. The Main Comic Emblem */
+.maplibregl-user-location-dot {
+    background-color: #FFD166 !important; 
+    border: calc(3px * var(--marker-scale)) solid #222222 !important; 
+    width: calc(20px * var(--marker-scale)) !important;
+    height: calc(20px * var(--marker-scale)) !important;
+    border-radius: 50% !important;
+    box-shadow: calc(3px * var(--marker-scale)) calc(3px * var(--marker-scale)) 0px #222222 !important; 
+}
+
+/* 2. The Spinning Dashed Radar Pulse */
+.maplibregl-user-location-dot::before {
+    background-color: transparent !important;
+    border: calc(3px * var(--marker-scale)) dashed #E63946 !important; 
+    content: '' !important;
+    width: 100% !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+    border-radius: 50% !important;
+    position: absolute !important;
+    /* Keeps the radar perfectly centered inside the border as it scales */
+    top: calc(-3px * var(--marker-scale)) !important; 
+    left: calc(-3px * var(--marker-scale)) !important; 
+    animation: comic-radar 2s infinite linear !important; 
+}
+
+/* 3. The Custom Animation for the Radar */
+@keyframes comic-radar {
+    0% { 
+        transform: scale(1) rotate(0deg); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: scale(3.5) rotate(90deg); 
+        opacity: 0; 
+    }
+}
+
+/* 4. The "YOU!" Comic Bubble */
+.maplibregl-user-location-dot::after {
+    content: "YOU!" !important;
+    display: block !important;
+    position: absolute;
+    /* Pushes the bubble up relative to the marker size */
+    top: calc(-35px * var(--marker-scale));
+    left: 50%;
+    /* Scales the bubble itself, transform-origin keeps it anchored at the bottom */
+    transform: translateX(-50%) scale(var(--marker-scale));
+    transform-origin: bottom center;
+    background-color: #E63946;
+    color: #FFFFFF;
+    font-family: 'Bangers', cursive;
+    font-size: 14px;
+    padding: 2px 8px;
+    border: 2px solid #222222;
+    border-radius: 5px;
+    box-shadow: 2px 2px 0px #222222;
+    pointer-events: none;
+    letter-spacing: 1px;
+}
+
+/* =========================================
+   INTEGRATED COMIC LAYER CONTROL
+   ========================================= */
+
+/* The main container holding the button and the dropdown */
+.comic-layer-ctrl {
+    position: relative;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* The square button that matches MapLibre default size */
+.comic-ctrl-btn {
+    width: 29px;
+    height: 29px;
+    background-color: #FFFFFF;
+    border: 2px solid #222222 !important;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 2px 0px #222222;
+    transition: transform 0.1s;
+}
+
+.comic-ctrl-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px #222222;
+}
+
+/* The Expandable Dropdown Panel */
+.comic-layer-panel {
+    position: absolute;
+    top: 0;
+    right: 38px; /* Pushes it exactly to the left of the button */
+    background-color: #FFFFFF;
+    border: 3px solid #222222;
+    border-radius: 6px;
+    padding: 10px 12px;
+    box-shadow: 4px 4px 0px #222222;
+    width: 160px; /* Smaller, tighter width */
+    display: none; /* Hidden by default */
+    flex-direction: column;
+}
+
+/* When the .show class is added via JS, reveal it */
+.comic-layer-panel.show {
+    display: flex;
+}
+
+/* Smaller, tighter text for the dropdown */
+.comic-toggle {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.comic-toggle:last-child {
+    margin-bottom: 0;
+}
+
+.comic-toggle input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.toggle-box {
+    height: 14px;
+    width: 14px;
+    background-color: #E5E7EB;
+    border: 2px solid #222222;
+    border-radius: 3px;
+    margin-right: 8px;
+    position: relative;
+}
+
+.comic-toggle input:checked ~ .toggle-box {
+    background-color: #FFD166;
+}
+
+.comic-toggle input:checked ~ .toggle-box:after {
+    content: "X";
+    position: absolute;
+    top: -2px;
+    left: 2px;
+    color: #222222;
+    font-family: 'Bangers', cursive;
+    font-size: 14px;
+}
