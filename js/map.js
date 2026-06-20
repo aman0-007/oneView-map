@@ -30,6 +30,8 @@ class ComicLayerControl {
             <label class="comic-toggle"><input type="checkbox" id="toggle-minor-roads" checked><span class="toggle-box"></span>Minor Streets</label>
             <label class="comic-toggle"><input type="checkbox" id="toggle-railways" checked><span class="toggle-box"></span>Train Tracks</label>
             <label class="comic-toggle"><input type="checkbox" id="toggle-stations" checked><span class="toggle-box"></span>Stations</label>
+            <label class="comic-toggle"><input type="checkbox" id="toggle-hospitals" checked><span class="toggle-box"></span>Hospitals</label>
+            <label class="comic-toggle"><input type="checkbox" id="toggle-schools" checked><span class="toggle-box"></span>Schools</label>
         `;
 
         // Toggle the dropdown when the button is clicked
@@ -135,7 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'toggle-major-roads': ['roads-major-shadow', 'roads-major-casing', 'roads-major-fill', 'roads-major-center-line', 'road-labels'],
             'toggle-minor-roads': ['roads-minor-casing', 'roads-minor-fill'],
             'toggle-railways': ['railway-casing', 'railway-dashes'],
-            'toggle-stations': ['station-markers', 'station-labels']
+            'toggle-stations': ['station-markers', 'station-labels'],
+            'toggle-hospitals': ['hospital-icons', 'hospital-labels'], // New!
+            'toggle-schools': ['school-icons', 'school-labels']        // New!
         };
 
         // 3. We must use setTimeout to wait 100ms for MapLibre to finish injecting 

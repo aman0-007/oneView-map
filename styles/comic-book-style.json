@@ -275,6 +275,90 @@
         "text-letter-spacing": 0.1
       },
       "paint": { "text-color": "#FFD166", "text-halo-color": "#222222", "text-halo-width": 3 }
+    },
+    {
+      "id": "hospital-icons",
+      "type": "symbol",
+      "source": "openfreemap",
+      "source-layer": "poi",
+      "minzoom": 14,
+      "filter": ["==", "class", "hospital"],
+      "layout": {
+        "text-field": "✚",
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 16, 20],
+        "text-anchor": "bottom",
+        "text-allow-overlap": true,
+        "text-ignore-placement": true
+      },
+      "paint": {
+        "text-color": "#E63946",
+        "text-halo-color": "#222222",
+        "text-halo-width": 3
+      }
+    },
+    {
+      "id": "hospital-labels",
+      "type": "symbol",
+      "source": "openfreemap",
+      "source-layer": "poi",
+      "minzoom": 15.5,
+      "filter": ["==", "class", "hospital"],
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": 12,
+        "text-transform": "uppercase",
+        "text-anchor": "top",
+        "text-offset": [0, 0.2]
+      },
+      "paint": {
+        "text-color": "#FFFFFF",
+        "text-halo-color": "#222222",
+        "text-halo-width": 3
+      }
+    },
+    {
+      "id": "school-icons",
+      "type": "symbol",
+      "source": "openfreemap",
+      "source-layer": "poi",
+      "minzoom": 14,
+      "filter": ["==", "class", "school"],
+      "layout": {
+        "text-field": "@", 
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12, 16, 20],
+        "text-anchor": "bottom",
+        "text-allow-overlap": true,
+        "text-ignore-placement": true
+      },
+      "paint": {
+        "text-color": "#FFD166",
+        "text-halo-color": "#222222",
+        "text-halo-width": 3
+      }
+    },
+    {
+      "id": "school-labels",
+      "type": "symbol",
+      "source": "openfreemap",
+      "source-layer": "poi",
+      "minzoom": 15.5,
+      "filter": ["==", "class", "school"],
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": 12,
+        "text-transform": "uppercase",
+        "text-anchor": "top",
+        "text-offset": [0, 0.2]
+      },
+      "paint": {
+        "text-color": "#FFFFFF",
+        "text-halo-color": "#222222",
+        "text-halo-width": 3
+      }
     }
   ]
 }
