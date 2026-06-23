@@ -159,5 +159,165 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }, 100);
+
+        // ==========================================
+        // 🚀 SUPERHERO ROUTING MODE (LONG-PRESS & START)
+        // ==========================================
+
+        if (typeof turf === 'undefined') {
+            alert("SYSTEM ERROR: Turf.js is missing! Please add it to index.html.");
+            return;
+        }
+
+        let userLocation = null;
+        let destinationMarker = null;
+        let heroMarker = null;
+        let lineAnimationId = null;
+        let travelAnimationId = null;
+        let currentRoutePath = null;
+
+        const startBtn = document.getElementById('start-btn');
+
+        // 1. Capture the user's live location
+        geolocate.on('geolocate', (e) => {
+            userLocation = [e.coords.longitude, e.coords.latitude];
+        });
+
+        // 2. Prepare the map layers for the Superhero Path
+        map.addSource('route-source', {
+            type: 'geojson',
+            data: turf.featureCollection([])
+        });
+
+        map.addLayer({
+            id: 'route-outline',
+            type: 'line',
+            source: 'route-source',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-color': '#222222', 'line-width': 14 }
+        });
+
+        map.addLayer({
+            id: 'route-fill',
+            type: 'line',
+            source: 'route-source',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-color': '#FFD166', 'line-width': 8 }
+        });
+
+        map.addLayer({
+            id: 'route-dashes',
+            type: 'line',
+            source: 'route-source',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+                'line-color': '#E63946',
+                'line-width': 4,
+                'line-dasharray': [1, 2]
+            }
+        });
+
+        // 3. LONG PRESS (Hold finger on mobile, or Right-Click on PC)
+        map.on('contextmenu', async (e) => {
+            if (!userLocation) {
+                alert("Please tap the GPS target icon to find your location first!");
+                return;
+            }
+
+            // Clean up old routes
+            if (lineAnimationId) cancelAnimationFrame(lineAnimationId);
+            if (travelAnimationId) cancelAnimationFrame(travelAnimationId);
+            if (heroMarker) heroMarker.remove();
+            startBtn.style.display = 'none';
+
+            const destination = [e.lngLat.lng, e.lngLat.lat];
+
+            // Drop the X marker
+            if (destinationMarker) destinationMarker.remove();
+            const el = document.createElement('div');
+            el.className = 'destination-marker';
+            destinationMarker = new maplibregl.Marker({ element: el })
+                .setLngLat(destination)
+                .addTo(map);
+
+            // Fetch the route from OSRM
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLocation[0]},${userLocation[1]};${destination[0]},${destination[1]}?geometries=geojson&overview=full`;
+            
+            try {
+                const response = await fetch(osrmUrl);
+                const data = await response.json();
+                
+                if (data.routes && data.routes.length > 0) {
+                    const fullRoute = data.routes[0].geometry;
+                    currentRoutePath = turf.lineString(fullRoute.coordinates);
+                    animateSuperheroPath(currentRoutePath);
+                } else {
+                    alert("No driving route found here!");
+                }
+            } catch (error) {
+                console.error("Routing failed:", error);
+            }
+        });
+
+        // 4. Draw the route smoothly
+        function animateSuperheroPath(routeLine) {
+            const totalDistance = turf.length(routeLine, { units: 'kilometers' });
+            let currentDistance = 0.01; // Start slightly above 0 to prevent crashes
+            const speed = totalDistance / 150; // Controls animation speed
+
+            function drawFrame() {
+                currentDistance += speed;
+
+                if (currentDistance >= totalDistance) {
+                    // Reached the end! Draw the full line and show the START button
+                    map.getSource('route-source').setData(routeLine);
+                    startBtn.style.display = 'block'; 
+                    return;
+                }
+
+                // Draw from start to current distance
+                const segment = turf.lineSliceAlong(routeLine, 0, currentDistance, { units: 'kilometers' });
+                map.getSource('route-source').setData(segment);
+
+                lineAnimationId = requestAnimationFrame(drawFrame);
+            }
+
+            drawFrame();
+        }
+
+        // 5. START! Fly along the route
+        startBtn.addEventListener('click', () => {
+            startBtn.style.display = 'none'; 
+
+            // Create our hero dot
+            const heroEl = document.createElement('div');
+            heroEl.className = 'maplibregl-user-location-dot';
+            heroMarker = new maplibregl.Marker({ element: heroEl })
+                .setLngLat(userLocation)
+                .addTo(map);
+
+            const totalDistance = turf.length(currentRoutePath, { units: 'kilometers' });
+            let traveledDistance = 0;
+            const travelSpeed = totalDistance / 300; // Controls flying speed
+
+            function travelFrame() {
+                traveledDistance += travelSpeed;
+
+                if (traveledDistance >= totalDistance) {
+                    return; // Reached destination
+                }
+
+                // Calculate exact frame position
+                const newPos = turf.along(currentRoutePath, traveledDistance, { units: 'kilometers' });
+                heroMarker.setLngLat(newPos.geometry.coordinates);
+
+                // Make the camera follow the action!
+                map.panTo(newPos.geometry.coordinates, { duration: 0 });
+
+                travelAnimationId = requestAnimationFrame(travelFrame);
+            }
+
+            travelFrame();
+        });
     });
 });

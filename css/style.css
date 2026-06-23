@@ -12,6 +12,22 @@ body, html {
     height: 100vh;
 }
 
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background-image:
+      radial-gradient(
+          rgba(0,0,0,0.08) 1px,
+          transparent 1px
+      );
+
+  background-size: 8px 8px;
+  mix-blend-mode: multiply;
+}
+
 /* Creates a vintage dark border around the edges of the screen */
 body::after {
     content: "";
@@ -58,7 +74,14 @@ body::after {
     /* Keeps the radar perfectly centered inside the border as it scales */
     top: calc(-3px * var(--marker-scale)) !important; 
     left: calc(-3px * var(--marker-scale)) !important; 
-    animation: comic-radar 2s infinite linear !important; 
+    /* animation: comic-radar 2s infinite linear !important;  */
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
 
 /* 3. The Custom Animation for the Radar */
@@ -193,4 +216,66 @@ body::after {
     color: #222222;
     font-family: 'Bangers', cursive;
     font-size: 14px;
+}
+
+/* =========================================
+   NAVIGATE MODE UI
+   ========================================= */
+
+.comic-nav-btn {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #FFD166;
+    color: #222222;
+    border: 4px solid #222222;
+    border-radius: 8px;
+    padding: 12px 40px;
+    font-family: 'Bangers', cursive;
+    font-size: 28px;
+    letter-spacing: 2px;
+    box-shadow: 6px 6px 0px #222222;
+    cursor: pointer;
+    z-index: 2000;
+    transition: all 0.1s ease-in-out;
+    display: none; /* Hidden until GPS finds you */
+    touch-action: manipulation; /* 🟢 NEW: Makes the button instantly responsive on mobile */
+}
+
+.comic-nav-btn:active {
+    transform: translateX(-50%) translate(4px, 4px);
+    box-shadow: 0px 0px 0px #222222;
+}
+
+.comic-nav-btn.active-mode {
+    background-color: #E63946;
+    color: #FFFFFF;
+}
+
+/* The Destination Target Marker */
+.destination-marker {
+    width: 30px;
+    height: 30px;
+    background-color: #E63946;
+    border: 4px solid #222222;
+    border-radius: 50%;
+    box-shadow: 3px 3px 0px #222222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.destination-marker::after {
+    content: "X";
+    font-family: 'Bangers', cursive;
+    color: #FFFFFF;
+    font-size: 18px;
+}
+
+#map {
+    width: 100vw;
+    height: 100vh;
+    -webkit-touch-callout: none; /* Prevents iPhone pop-up menu on long-press */
+    user-select: none; /* Prevents Android text-selection on long-press */
 }

@@ -206,7 +206,13 @@
       "source-layer": "building",
       "minzoom": 15.5,
       "paint": {
-        "fill-extrusion-color": "#F0F4F8",
+        "fill-extrusion-color": [
+        "interpolate",
+        ["linear"],
+        ["get", "render_height"],
+        0, "#FFFFFF",
+        100, "#B8C4D0"
+      ],
         "fill-extrusion-height": ["coalesce", ["get", "render_height"], 15],
         "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 15.5, 0, 16, 1.0]
       }
