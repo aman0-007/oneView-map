@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 100);
 
         // ==========================================
-        // 🚀 SUPERHERO ROUTING MODE (LONG-PRESS & START)
+        // 🚀 SUPERHERO ROUTING MODE (LIVE TRACKING)
         // ==========================================
 
         if (typeof turf === 'undefined') {
@@ -171,19 +171,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let userLocation = null;
         let destinationMarker = null;
-        let heroMarker = null;
         let lineAnimationId = null;
-        let travelAnimationId = null;
         let currentRoutePath = null;
+        let isLiveNavigating = false; // Tracks if we are in active driving mode
 
         const startBtn = document.getElementById('start-btn');
+        const distanceBadge = document.getElementById('distance-badge');
 
-        // 1. Capture the user's live location
+        // 1. Capture the user's live location and lock camera if driving
         geolocate.on('geolocate', (e) => {
             userLocation = [e.coords.longitude, e.coords.latitude];
+            
+            // If the user hit START, aggressively lock the camera to their live position
+            if (isLiveNavigating) {
+                map.easeTo({
+                    center: userLocation,
+                    zoom: 16.5,
+                    pitch: 60, // Deep 3D tilt for "Driving Mode"
+                    // If the phone compass provides a heading, rotate the map!
+                    bearing: e.coords.heading || map.getBearing() 
+                });
+            }
         });
 
-        // 2. Prepare the map layers for the Superhero Path
+        // 2. Prepare the map layers
         map.addSource('route-source', {
             type: 'geojson',
             data: turf.featureCollection([])
@@ -210,37 +221,32 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'line',
             source: 'route-source',
             layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: {
-                'line-color': '#E63946',
-                'line-width': 4,
-                'line-dasharray': [1, 2]
-            }
+            paint: { 'line-color': '#E63946', 'line-width': 4, 'line-dasharray': [1, 2] }
         });
 
-        // 3. LONG PRESS (Hold finger on mobile, or Right-Click on PC)
+        // 3. LONG PRESS to set Destination
         map.on('contextmenu', async (e) => {
             if (!userLocation) {
                 alert("Please tap the GPS target icon to find your location first!");
                 return;
             }
 
-            // Clean up old routes
-            if (lineAnimationId) cancelAnimationFrame(lineAnimationId);
-            if (travelAnimationId) cancelAnimationFrame(travelAnimationId);
-            if (heroMarker) heroMarker.remove();
+            // Reset UI for a new route
+            isLiveNavigating = false;
+            startBtn.innerHTML = "START!";
+            startBtn.style.backgroundColor = "#FFD166";
+            startBtn.style.color = "#222222";
             startBtn.style.display = 'none';
+            distanceBadge.style.display = 'none';
+            if (lineAnimationId) cancelAnimationFrame(lineAnimationId);
 
             const destination = [e.lngLat.lng, e.lngLat.lat];
 
-            // Drop the X marker
             if (destinationMarker) destinationMarker.remove();
             const el = document.createElement('div');
             el.className = 'destination-marker';
-            destinationMarker = new maplibregl.Marker({ element: el })
-                .setLngLat(destination)
-                .addTo(map);
+            destinationMarker = new maplibregl.Marker({ element: el }).setLngLat(destination).addTo(map);
 
-            // Fetch the route from OSRM
             const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLocation[0]},${userLocation[1]};${destination[0]},${destination[1]}?geometries=geojson&overview=full`;
             
             try {
@@ -250,6 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.routes && data.routes.length > 0) {
                     const fullRoute = data.routes[0].geometry;
                     currentRoutePath = turf.lineString(fullRoute.coordinates);
+                    
+                    // 🟢 NEW: Calculate and display the total distance!
+                    const totalDistance = turf.length(currentRoutePath, { units: 'kilometers' });
+                    distanceBadge.innerHTML = `DISTANCE: ${totalDistance.toFixed(2)} KM`;
+                    distanceBadge.style.display = 'block';
+
                     animateSuperheroPath(currentRoutePath);
                 } else {
                     alert("No driving route found here!");
@@ -259,65 +271,167 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 4. Draw the route smoothly
+        // 4. Draw the route smoothly (Animation)
         function animateSuperheroPath(routeLine) {
             const totalDistance = turf.length(routeLine, { units: 'kilometers' });
-            let currentDistance = 0.01; // Start slightly above 0 to prevent crashes
-            const speed = totalDistance / 150; // Controls animation speed
+            let currentDistance = 0.01; 
+            const speed = totalDistance / 150; 
 
             function drawFrame() {
                 currentDistance += speed;
 
                 if (currentDistance >= totalDistance) {
-                    // Reached the end! Draw the full line and show the START button
                     map.getSource('route-source').setData(routeLine);
                     startBtn.style.display = 'block'; 
                     return;
                 }
 
-                // Draw from start to current distance
                 const segment = turf.lineSliceAlong(routeLine, 0, currentDistance, { units: 'kilometers' });
                 map.getSource('route-source').setData(segment);
-
                 lineAnimationId = requestAnimationFrame(drawFrame);
             }
 
             drawFrame();
         }
 
-        // 5. START! Fly along the route
+        // 5. START / END LIVE JOURNEY
         startBtn.addEventListener('click', () => {
-            startBtn.style.display = 'none'; 
+            if (isLiveNavigating) {
+                // If already navigating, this acts as the "END" button
+                isLiveNavigating = false;
+                startBtn.style.display = 'none';
+                distanceBadge.style.display = 'none';
+                map.getSource('route-source').setData(turf.featureCollection([]));
+                if (destinationMarker) destinationMarker.remove();
+                
+                // Return camera to a relaxed top-down view
+                map.easeTo({ pitch: 45, zoom: 15.5 });
 
-            // Create our hero dot
-            const heroEl = document.createElement('div');
-            heroEl.className = 'maplibregl-user-location-dot';
-            heroMarker = new maplibregl.Marker({ element: heroEl })
-                .setLngLat(userLocation)
+            } else {
+                // Start Real Live Navigation!
+                isLiveNavigating = true;
+                
+                // Change button to an "END JOURNEY" kill switch
+                startBtn.innerHTML = "END JOURNEY";
+                startBtn.style.backgroundColor = "#E63946"; // Red color
+                startBtn.style.color = "#FFFFFF";
+                
+                // Instantly snap the camera to the user's live position in 3D driving mode
+                map.flyTo({
+                    center: userLocation,
+                    zoom: 16.5,
+                    pitch: 60
+                });
+            }
+        });
+
+        // ==========================================
+        // 🏥 HOSPITAL & 🎓 SCHOOL DOSSIER LOGIC
+        // ==========================================
+
+        const hospitalUi = document.getElementById('hospital-ui');
+        const hospitalNameDisplay = document.getElementById('hospital-name-display');
+        const schoolUi = document.getElementById('school-ui');
+        const schoolNameDisplay = document.getElementById('school-name-display');
+        
+        let selectedPoiCoords = null; 
+
+        // --- 1. Hospital Clicks ---
+        map.on('click', 'hospital-icons', (e) => {
+            schoolUi.classList.remove('open'); // Close school panel if open
+            const feature = e.features[0];
+            selectedPoiCoords = feature.geometry.coordinates.slice();
+            hospitalNameDisplay.innerText = feature.properties.name || "Unknown Medical Center";
+            
+            hospitalUi.classList.add('open');
+
+            // FIX: Uses pixel offsets to keep building visible on the left side of the screen
+            map.easeTo({
+                center: selectedPoiCoords,
+                offset: [60, 0], // Smoothly nudge camera right to keep point clear of panel
+                duration: 400
+            });
+        });
+
+        // --- 2. School Clicks ---
+        map.on('click', 'school-icons', (e) => {
+            hospitalUi.classList.remove('open'); // Close hospital panel if open
+            const feature = e.features[0];
+            selectedPoiCoords = feature.geometry.coordinates.slice();
+            schoolNameDisplay.innerText = feature.properties.name || "Unknown School Facility";
+            
+            schoolUi.classList.add('open');
+
+            // Uses the identical pixel-perfect alignment strategy
+            map.easeTo({
+                center: selectedPoiCoords,
+                offset: [60, 0],
+                duration: 400
+            });
+        });
+
+        // --- 3. Hover Adjustments for Interactive Layers ---
+        map.on('mouseenter', 'hospital-icons', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'hospital-icons', () => { map.getCanvas().style.cursor = ''; });
+        map.on('mouseenter', 'school-icons', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'school-icons', () => { map.getCanvas().style.cursor = ''; });
+
+        // --- 4. Panel Close Listeners ---
+        document.getElementById('close-dossier').addEventListener('click', () => {
+            hospitalUi.classList.remove('open');
+            selectedPoiCoords = null;
+        });
+        document.getElementById('close-school-dossier').addEventListener('click', () => {
+            schoolUi.classList.remove('open');
+            selectedPoiCoords = null;
+        });
+
+        // --- 5. Integrated Action Router Function ---
+        async function triggerDossierRoute(destinationCoords) {
+            if (!userLocation) {
+                alert("Please tap the GPS target icon to find your location first!");
+                return;
+            }
+            
+            hospitalUi.classList.remove('open');
+            schoolUi.classList.remove('open');
+
+            if (lineAnimationId) cancelAnimationFrame(lineAnimationId);
+            if (destinationMarker) destinationMarker.remove();
+            
+            const el = document.createElement('div');
+            el.className = 'destination-marker';
+            destinationMarker = new maplibregl.Marker({ element: el })
+                .setLngLat(destinationCoords)
                 .addTo(map);
 
-            const totalDistance = turf.length(currentRoutePath, { units: 'kilometers' });
-            let traveledDistance = 0;
-            const travelSpeed = totalDistance / 300; // Controls flying speed
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLocation[0]},${userLocation[1]};${destinationCoords[0]},${destinationCoords[1]}?geometries=geojson&overview=full`;
+            
+            try {
+                const response = await fetch(osrmUrl);
+                const data = await response.json();
+                
+                if (data.routes && data.routes.length > 0) {
+                    const fullRoute = data.routes[0].geometry;
+                    currentRoutePath = turf.lineString(fullRoute.coordinates);
+                    
+                    const totalDistance = turf.length(currentRoutePath, { units: 'kilometers' });
+                    distanceBadge.innerHTML = `DISTANCE: ${totalDistance.toFixed(2)} KM`;
+                    distanceBadge.style.display = 'block';
 
-            function travelFrame() {
-                traveledDistance += travelSpeed;
-
-                if (traveledDistance >= totalDistance) {
-                    return; // Reached destination
+                    animateSuperheroPath(currentRoutePath);
                 }
-
-                // Calculate exact frame position
-                const newPos = turf.along(currentRoutePath, traveledDistance, { units: 'kilometers' });
-                heroMarker.setLngLat(newPos.geometry.coordinates);
-
-                // Make the camera follow the action!
-                map.panTo(newPos.geometry.coordinates, { duration: 0 });
-
-                travelAnimationId = requestAnimationFrame(travelFrame);
+            } catch (error) {
+                console.error("Routing failed:", error);
             }
+        }
 
-            travelFrame();
+        // Connect action buttons directly to the router
+        document.getElementById('dossier-route-btn').addEventListener('click', () => {
+            if (selectedPoiCoords) triggerDossierRoute(selectedPoiCoords);
+        });
+        document.getElementById('school-dossier-route-btn').addEventListener('click', () => {
+            if (selectedPoiCoords) triggerDossierRoute(selectedPoiCoords);
         });
     });
 });

@@ -13,6 +13,35 @@
     <div id="map"></div>
     <button id="start-btn" class="comic-nav-btn" style="display: none;">START!</button>
     
+    <div id="distance-badge" class="comic-distance-badge" style="display: none;"></div>
+    <div id="hospital-ui" class="comic-dossier hospital-theme">
+        <button id="close-dossier" class="comic-close-btn">X</button>
+        <div class="dossier-header">
+            <span class="dossier-tag">✚ MEDICAL CENTER</span>
+            <h2 id="hospital-name-display">UNKNOWN FACILITY</h2>
+        </div>
+        <div class="dossier-body">
+            <div class="dossier-stat"><strong>STATUS:</strong> <span style="color: #53DD6C;">ACTIVE / OPEN</span></div>
+            <div class="dossier-stat"><strong>ZONE:</strong> CHEMBUR SECTOR</div>
+            <div class="dossier-image-placeholder hospital-pattern"><span>EMERGENCY SERVICES</span></div>
+        </div>
+        <button id="dossier-route-btn" class="comic-action-btn">SET AS TARGET!</button>
+    </div>
+
+    <div id="school-ui" class="comic-dossier school-theme">
+        <button id="close-school-dossier" class="comic-close-btn">X</button>
+        <div class="dossier-header">
+            <span class="dossier-tag">🎓 ACADEMIC ZONE</span>
+            <h2 id="school-name-display">UNKNOWN INSTiTUTION</h2>
+        </div>
+        <div class="dossier-body">
+            <div class="dossier-stat"><strong>STATUS:</strong> <span style="color: #53DD6C;">ACTIVE / CLASSES ONGOING</span></div>
+            <div class="dossier-stat"><strong>ZONE:</strong> EDUCATION SECTOR</div>
+            <div class="dossier-image-placeholder school-pattern"><span>CAMPUS FACILITY</span></div>
+        </div>
+        <button id="school-dossier-route-btn" class="comic-action-btn">SET AS TARGET!</button>
+    </div>
+    
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     <script src="js/map.js"></script>
