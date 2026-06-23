@@ -11,6 +11,22 @@
 <body>
 
     <div id="map"></div>
+    <div id="search-container" class="comic-search-container collapsed">
+        
+        <button id="search-toggle-btn" class="comic-search-icon-btn">
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="#222222" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </button>
+        
+        <div class="search-input-wrapper">
+            <button id="search-collapse-btn" class="comic-back-btn">⬅</button>
+            <input type="text" id="place-search-input" class="comic-search-input" placeholder="SEARCH FOR A PLACE...">
+            <button id="search-clear-btn" class="comic-clear-btn">X</button>
+        </div>
+        <div id="search-results-dropdown" class="comic-search-results"></div>
+    </div>
     <button id="start-btn" class="comic-nav-btn" style="display: none;">START!</button>
     
     <div id="distance-badge" class="comic-distance-badge" style="display: none;"></div>

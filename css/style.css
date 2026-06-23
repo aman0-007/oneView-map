@@ -413,3 +413,128 @@ body::after {
     background: repeating-linear-gradient(45deg, #FFD166, #FFD166 10px, #FCEABB 10px, #FCEABB 20px);
     background-size: 28px 28px;
 }
+
+
+/* =========================================
+   COLLAPSIBLE SEARCH BAR UI
+   ========================================= */
+.comic-search-container {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- COLLAPSED STATE (Just the magnifying glass) --- */
+.comic-search-container.collapsed {
+    width: 50px;
+    height: 50px;
+    left: 70px; /* Positions it nicely on the left side of the screen */
+    transform: none;
+}
+
+.comic-search-icon-btn {
+    width: 50px;
+    height: 50px;
+    background-color: #FFFFFF;
+    border: 4px solid #222222;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #222222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.1s;
+}
+
+.comic-search-icon-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #222222;
+}
+
+.comic-search-container.collapsed .search-input-wrapper,
+.comic-search-container.collapsed .comic-search-results {
+    display: none; /* Hide the big bar when collapsed */
+}
+
+/* --- EXPANDED STATE (Full Search Bar) --- */
+.comic-search-container.expanded {
+    width: 90%;
+    max-width: 400px;
+}
+
+.comic-search-container.expanded .comic-search-icon-btn {
+    display: none; /* Hide magnifying glass when expanded */
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    box-shadow: 4px 4px 0px #222222;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    border: 4px solid #222222;
+}
+
+.comic-back-btn {
+    background: none;
+    border: none;
+    border-right: 3px solid #222222;
+    font-size: 24px;
+    padding: 0 10px;
+    cursor: pointer;
+    color: #222222;
+}
+
+.comic-search-input {
+    width: 100%;
+    padding: 12px 40px 12px 10px;
+    border: none;
+    background: transparent;
+    font-family: 'Bangers', cursive;
+    font-size: 22px;
+    letter-spacing: 1px;
+    outline: none;
+}
+
+.comic-clear-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-family: 'Bangers', cursive;
+    font-size: 20px;
+    color: #E63946;
+    cursor: pointer;
+    display: none;
+}
+
+.comic-search-results {
+    background-color: #FFFFFF;
+    border: 4px solid #222222;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 250px;
+    overflow-y: auto;
+    display: none;
+    box-shadow: 4px 4px 0px #222222;
+    margin-top: -4px;
+}
+
+.search-result-item {
+    padding: 12px 15px;
+    border-bottom: 2px dashed #222222;
+    font-family: 'Noto Sans Bold', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.search-result-item:hover {
+    background-color: #FFD166;
+}

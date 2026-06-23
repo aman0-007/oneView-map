@@ -224,8 +224,12 @@ document.addEventListener('DOMContentLoaded', () => {
             paint: { 'line-color': '#E63946', 'line-width': 4, 'line-dasharray': [1, 2] }
         });
 
-        // 3. LONG PRESS to set Destination
-        map.on('contextmenu', async (e) => {
+        // ==========================================
+        // 3. BULLETPROOF HOLD-TO-ROUTE SYSTEM
+        // ==========================================
+
+        // The Core Routing Function
+        async function triggerHoldToRoute(lngLat) {
             if (!userLocation) {
                 alert("Please tap the GPS target icon to find your location first!");
                 return;
@@ -240,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             distanceBadge.style.display = 'none';
             if (lineAnimationId) cancelAnimationFrame(lineAnimationId);
 
-            const destination = [e.lngLat.lng, e.lngLat.lat];
+            const destination = [lngLat.lng, lngLat.lat];
 
             if (destinationMarker) destinationMarker.remove();
             const el = document.createElement('div');
@@ -257,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const fullRoute = data.routes[0].geometry;
                     currentRoutePath = turf.lineString(fullRoute.coordinates);
                     
-                    // 🟢 NEW: Calculate and display the total distance!
+                    // Calculate and display the total distance!
                     const totalDistance = turf.length(currentRoutePath, { units: 'kilometers' });
                     distanceBadge.innerHTML = `DISTANCE: ${totalDistance.toFixed(2)} KM`;
                     distanceBadge.style.display = 'block';
@@ -268,6 +272,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (error) {
                 console.error("Routing failed:", error);
+            }
+        }
+
+        // 3A. LAPTOP DETECTOR (Right-click or two-finger tap)
+        map.on('contextmenu', (e) => {
+            triggerHoldToRoute(e.lngLat);
+        });
+
+        // 3B. MOBILE DETECTOR (Custom Touch Timer)
+        let touchTimer = null;
+        let touchStartCoords = null;
+
+        map.on('touchstart', (e) => {
+            if (e.originalEvent.touches.length > 1) return; // Ignore multi-touch (pinching)
+            
+            touchStartCoords = e.point; // Save start position
+            
+            // Start a 600ms timer
+            touchTimer = setTimeout(() => {
+                triggerHoldToRoute(e.lngLat); // BOOM! Trigger the route
+                touchTimer = null;
+            }, 600);
+        });
+
+        // If the finger moves more than 10 pixels, they are panning the map, so cancel the timer!
+        map.on('touchmove', (e) => {
+            if (!touchStartCoords || !touchTimer) return;
+
+            const dist = Math.sqrt(
+                Math.pow(e.point.x - touchStartCoords.x, 2) +
+                Math.pow(e.point.y - touchStartCoords.y, 2)
+            );
+            
+            if (dist > 10) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+        });
+
+        // If finger lifts up early, cancel the timer!
+        map.on('touchend', () => {
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+        });
+        map.on('touchcancel', () => {
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
             }
         });
 
@@ -432,6 +486,127 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.getElementById('school-dossier-route-btn').addEventListener('click', () => {
             if (selectedPoiCoords) triggerDossierRoute(selectedPoiCoords);
+        });
+
+
+        // ==========================================
+        // 🔍 OPEN-SOURCE SEARCH ENGINE LOGIC
+        // ==========================================
+
+        const searchInput = document.getElementById('place-search-input');
+        const searchResultsDropdown = document.getElementById('search-results-dropdown');
+        const clearSearchBtn = document.getElementById('search-clear-btn');
+
+        // Toggle Expand
+        searchToggleBtn.addEventListener('click', () => {
+            searchContainer.classList.remove('collapsed');
+            searchContainer.classList.add('expanded');
+            searchInput.focus(); // Automatically pull up the mobile keyboard!
+        });
+
+        // Toggle Collapse
+        searchCollapseBtn.addEventListener('click', () => {
+            searchContainer.classList.remove('expanded');
+            searchContainer.classList.add('collapsed');
+            searchInput.value = '';
+            searchResultsDropdown.style.display = 'none';
+            clearSearchBtn.style.display = 'none';
+        });
+        
+        let searchTimeout = null;
+
+        // 1. Listen for typing in the search bar
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            
+            // Show/Hide the clear button
+            clearSearchBtn.style.display = query.length > 0 ? 'block' : 'none';
+
+            if (query.length < 3) {
+                searchResultsDropdown.style.display = 'none';
+                return;
+            }
+
+            // Debounce: Wait 500ms after they stop typing before hitting the API
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                performSearch(query);
+            }, 500);
+        });
+
+        // 2. Fetch data from OpenStreetMap's free Geocoder (Nominatim)
+        async function performSearch(query) {
+            // We add 'Mumbai' to the query behind the scenes to prioritize local results!
+            const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' Mumbai')}&limit=5`;
+            
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                displaySearchResults(data);
+            } catch (error) {
+                console.error("Search failed:", error);
+            }
+        }
+
+        // 3. Display the results in the Dropdown
+        function displaySearchResults(results) {
+            searchResultsDropdown.innerHTML = ''; // Clear old results
+
+            if (results.length === 0) {
+                searchResultsDropdown.innerHTML = '<div class="search-result-item" style="color: #E63946;">NO HIDEOUTS FOUND!</div>';
+                searchResultsDropdown.style.display = 'block';
+                return;
+            }
+
+            results.forEach(place => {
+                const item = document.createElement('div');
+                item.className = 'search-result-item';
+                
+                // Clean up the name so it isn't too long
+                const shortName = place.display_name.split(',').slice(0, 2).join(',');
+                item.innerText = `📍 ${shortName}`;
+                
+                // 4. WHAT HAPPENS WHEN YOU CLICK A RESULT!
+                item.addEventListener('click', () => {
+                    const lon = parseFloat(place.lon);
+                    const lat = parseFloat(place.lat);
+                    const destinationCoords = [lon, lat];
+
+                    // Hide dropdown and clear text
+                    searchResultsDropdown.style.display = 'none';
+                    searchInput.value = '';
+                    clearSearchBtn.style.display = 'none';
+
+                    // Fly the camera to the searched place!
+                    map.flyTo({
+                        center: destinationCoords,
+                        zoom: 15.5,
+                        pitch: 45
+                    });
+
+                    // Wait 1 second for the camera to arrive, then draw the route!
+                    setTimeout(() => {
+                        // We reuse the awesome function we built in the last step!
+                        if (typeof triggerDossierRoute === "function") {
+                            triggerDossierRoute(destinationCoords);
+                        } else {
+                            alert("Routing engine not found!");
+                        }
+                    }, 1000);
+                });
+
+                searchResultsDropdown.appendChild(item);
+            });
+
+            searchResultsDropdown.style.display = 'block';
+        }
+
+        // 5. Clear Button Logic
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            searchResultsDropdown.style.display = 'none';
+            clearSearchBtn.style.display = 'none';
         });
     });
 });
